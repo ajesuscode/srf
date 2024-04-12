@@ -5,10 +5,11 @@ authors = ["Andrew Mixkiv <andrewmixkiv@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A tool to check surf forecasts"
 readme = "README.md"
-homepage = "https://github.com/you/grrs"
-repository = "https://github.com/you/grrs"
+homepage = "https://github.com/ajesuscode/srf"
+repository = "https://github.com/ajesuscode/srf"
 keywords = ["surfing", "forecast", "surf"]
 categories = ["command-line-utilities"]
+edition = "2021"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

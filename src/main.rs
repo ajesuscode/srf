@@ -1,7 +1,9 @@
 use anyhow::Result;
 use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
 use clap::Parser;
+use indicatif::{ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 // Add this line to import the missing type
 
 /// Simple program to greet a person
@@ -41,8 +43,30 @@ struct HourlySpotForecast {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    let cur_date = Utc::now().naive_utc().date();
 
+    // Start a progress bar
+    let duration: u64 = 250;
+    let duration: Duration = Duration::from_millis(duration);
+    let style = ProgressStyle::with_template("{spinner:.blue} {msg}")
+        .unwrap()
+        // For more spinners check out the cli-spinners project:
+        // https://github.com/sindresorhus/cli-spinners/blob/master/spinners.json
+        .tick_strings(&[
+            "﹏﹏﹏﹏﹏",
+            "🌊﹏﹏﹏﹏",
+            "﹏🌊﹏﹏﹏",
+            "﹏﹏🌊﹏﹏",
+            "﹏﹏﹏🌊﹏",
+            "﹏﹏﹏﹏🌊",
+            "🏄‍♂️﹏﹏﹏🌴",
+        ]);
+
+    let progress_bar = ProgressBar::new_spinner();
+    progress_bar.set_style(style);
+    progress_bar.set_message("Surfing for coordinates...");
+    progress_bar.enable_steady_tick(duration);
+
+    let cur_date = Utc::now().naive_utc().date();
     let spot_coordinates = match get_coordinates(&args.spot).await {
         Ok(coordinates) => {
             if coordinates.is_empty() {
@@ -60,14 +84,14 @@ async fn main() {
     let first_coord = &spot_coordinates[0];
 
     if args.week {
-        match spot_forecast(&first_coord.lat, &first_coord.lon).await {
+        match spot_forecast(&first_coord.lat, &first_coord.lon, progress_bar).await {
             Ok(forecast_data) => week_forecast(forecast_data, cur_date).await,
             Err(e) => {
                 eprintln!("Error fetching forecast: {}", e);
             }
         }
     } else {
-        match spot_forecast(&first_coord.lat, &first_coord.lon).await {
+        match spot_forecast(&first_coord.lat, &first_coord.lon, progress_bar).await {
             Ok(forecast_data) => today_forecast(forecast_data, cur_date).await,
             Err(e) => {
                 eprintln!("Error fetching forecast: {}", e);
@@ -82,11 +106,13 @@ async fn get_coordinates(spot: &String) -> Result<Vec<SpotCoordinates>> {
         spot
     );
     let client = reqwest::Client::new();
+
     let response = client
         .get(&url)
         .header("User-Agent", "surf-forecast")
         .send()
         .await?;
+
     match response.status() {
         reqwest::StatusCode::OK => response
             .json::<Vec<SpotCoordinates>>()
@@ -99,7 +125,11 @@ async fn get_coordinates(spot: &String) -> Result<Vec<SpotCoordinates>> {
     }
 }
 
-async fn spot_forecast(lat: &String, lon: &String) -> Result<HourlySpotForecast> {
+async fn spot_forecast(
+    lat: &String,
+    lon: &String,
+    progress_bar: ProgressBar,
+) -> Result<HourlySpotForecast> {
     let url = format!("https://marine-api.open-meteo.com/v1/marine?latitude={}&longitude={}&hourly=wave_height,wave_direction,wave_period", lat, lon);
     let client = reqwest::Client::new();
     let response = client
@@ -107,6 +137,9 @@ async fn spot_forecast(lat: &String, lon: &String) -> Result<HourlySpotForecast>
         .header("User-Agent", "surf-forecast")
         .send()
         .await?;
+
+    progress_bar.finish_with_message("Surfed good");
+
     match response.status() {
         reqwest::StatusCode::OK => response
             .json::<HourlySpotForecast>()

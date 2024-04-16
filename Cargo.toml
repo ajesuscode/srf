@@ -1,6 +1,6 @@
 [package]
 name = "srf"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Andrew Mixkiv <andrewmixkiv@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A tool to check surf forecasts"
@@ -24,3 +24,4 @@ serde_json = "1.0"
 anyhow = "1.0.80"
 serde_with = "3.7.0"
 chrono = "0.4.35"
+indicatif = "0.17"
